@@ -14,26 +14,6 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
 class AjaxComment_Action extends Typecho_Widget implements Widget_Interface_Do {
 
     /**
-     * 对已注册用户的保护性检测
-     *
-     * @access public
-     * @param string $userName 用户名
-     * @return void
-     */
-    public function requireUserLogin($userName) {
-        $user = Typecho_Widget::widget('Widget_User');
-        $db = Typecho_Db:: get();
-        if ($user->hasLogin() && $user->screenName != $userName) {
-            /** 当前用户名与提交者不匹配 */
-            return false;
-        } else if (!$user->hasLogin() && $db->fetchRow($db->select('uid')->from('table.users')->where('screenName = ? OR name = ?', $userName, $userName)->limit(1))) {
-            /** 此用户名已经被注册 */
-            return false;
-        }
-        return true;
-    }
-
-    /**
      * 发表评论
      *
      * @access public
@@ -64,7 +44,6 @@ class AjaxComment_Action extends Typecho_Widget implements Widget_Interface_Do {
 
         $options = Typecho_Widget::widget('Widget_Options');
         $settings = $options->plugin('AjaxComment');
-        $db = Typecho_Db:: get();
         $user = Typecho_Widget::widget('Widget_User');
 
         /** 检查来源 */
@@ -92,25 +71,6 @@ class AjaxComment_Action extends Typecho_Widget implements Widget_Interface_Do {
             }
         }
 
-        /** 检查ip评论间隔 */
-        if (!$user->pass('editor', true) && $post->authorId != $user->uid && $options->commentsPostIntervalEnable) {
-            $latestComment = $db->fetchRow($db->select('created')->from('table.comments')->where('cid = ?', $post->cid)->order('created', Typecho_Db::SORT_DESC)->limit(1));
-            if ($latestComment && ($options->gmtTime - $latestComment['created'] > 0 && $options->gmtTime - $latestComment['created'] < $options->commentsPostInterval)) {
-                $this->err(_t('对不起, 您的发言过于频繁, 请稍侯再次发布'));
-            }
-        }
-
-        /** 判断父节点 */
-        if ($comment_parent) {
-            if (!$options->commentsThreaded) {
-                $this->err('禁止对评论进行回复！');
-            }
-            $parent = $db->fetchRow($db->select('coid', 'cid')->from('table.comments')->where('coid = ?', $comment_parent));
-            if (!$parent || $post->cid != $parent['cid']) {
-                $this->err('父级评论不存在');
-            }
-        }
-
         $comment = array();
         $comment['permalink'] = $post->pathinfo;
         $comment['type'] = 'comment';
@@ -135,33 +95,6 @@ class AjaxComment_Action extends Typecho_Widget implements Widget_Interface_Do {
             $comment['url'] = $user->url;
         }
 
-        //检验格式
-        $validator = new Typecho_Validate();
-        $validator->setBreak();
-        $validator->addRule('author', 'required', _t('必须填写用户名'));
-        $validator->addRule('author', 'xssCheck', _t('请不要在用户名中使用特殊字符'));
-        $validator->addRule('author', array($this, 'requireUserLogin'), _t('您所使用的用户名已经被注册,请登录后再次提交'));
-        $validator->addRule('author', 'maxLength', _t('用户名最多包含200个字符'), 200);
-
-        if ($options->commentsRequireMail && !$user->hasLogin()) {
-            $validator->addRule('mail', 'required', _t('必须填写电子邮箱地址'));
-        }
-
-        $validator->addRule('mail', 'email', _t('邮箱地址不合法'));
-        $validator->addRule('mail', 'maxLength', _t('电子邮箱最多包含200个字符'), 200);
-
-        if ($options->commentsRequireUrl && !$user->hasLogin()) {
-            $validator->addRule('url', 'required', _t('必须填写个人主页'));
-        }
-        $validator->addRule('url', 'url', _t('个人主页地址格式错误'));
-        $validator->addRule('url', 'maxLength', _t('个人主页地址最多包含200个字符'), 200);
-
-        $validator->addRule('text', 'required', _t('必须填写评论内容'));
-
-        if ($error = $validator->run($comment)) {
-            $this->err(implode('', $error));
-        }
-
         if ($settings->comment_needchinese) {
             if (!preg_match('/[一-龥]/u', $comment['text'])) {
                 $this->err('评论内容中必须含有中文');
@@ -170,8 +103,12 @@ class AjaxComment_Action extends Typecho_Widget implements Widget_Interface_Do {
 
         Typecho_Plugin::factory('Widget_Feedback')->finishComment = array($this, 'Widget_Feedback_finishComment');
 
-        $commentWidget = Typecho_Widget::widget('Widget_Feedback', 'checkReferer=false', $comment, false);
-        $commentWidget->action();
+        try {
+            $commentWidget = Typecho_Widget::widget('Widget_Feedback', 'checkReferer=false', $comment, false);
+            $commentWidget->action();
+        } catch (Exception $e) {
+            $this->err($e->getMessage());
+        }
     }
 
     /**

@@ -27,7 +27,7 @@ if (basename(dirname(__FILE__)) != $this_plugin_name) {
  *
  * @package AjaxComment
  * @author 情留メ蚊子
- * @version 1.0.0.0
+ * @version 1.0.0.1
  * @link http://www.94qing.com/
  */
 class AjaxComment_Plugin implements Typecho_Plugin_Interface {
@@ -178,7 +178,7 @@ class AjaxComment_Plugin implements Typecho_Plugin_Interface {
             var comments_order = '<?php echo $options->commentsOrder; ?>';
 
             var comment_list_element = '<?php echo $settings->comment_list_element; ?>';
-            var comment_list_class = '<?php echo $settings->comment_list_element; ?>';
+            var comment_list_class = '<?php echo $settings->comment_list_class; ?>';
             var comment_list_class_one = comment_list_class.split(' ')[0];
 
             var comment_children_list_element = '<?php echo $settings->comment_children_list_element; ?>';
