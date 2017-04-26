@@ -118,34 +118,61 @@ function comment_append(content_html) {
     }
 }
 
-var r = _id(respond_id);
-if (null != r) {
-    var forms = r.getElementsByTagName('form');
-    if (forms.length > 0) {
-        if (_id('AjaxComment_loading') == undefined) {
-            appendChildHtml(forms[0].getElementsByTagName('textarea')[0].parentNode, loading_div);
-        }
-        if (_id('AjaxComment_error') == undefined) {
-            appendChildHtml(forms[0].getElementsByTagName('textarea')[0].parentNode, error_div);
-        }
+function registAjaxCommentEvent() {
+	if (respond_id == null || ajaxcomment_url == null)
+	{
+		return;
+	}
+    var r = _id(respond_id);
+    if (null != r) {
+        var forms = r.getElementsByTagName('form');
+        if (forms.length > 0) {
+            if (_id('AjaxComment_loading') == undefined) {
+                appendChildHtml(forms[0].getElementsByTagName('textarea')[0].parentNode, loading_div);
+            }
+            if (_id('AjaxComment_error') == undefined) {
+                appendChildHtml(forms[0].getElementsByTagName('textarea')[0].parentNode, error_div);
+            }
 
-        forms[0].onsubmit = function() {
-            var form = _id(respond_id).getElementsByTagName('form')[0];
-            _id('AjaxComment_loading').style.display = 'block';
-            _id('AjaxComment_error').style.display = 'none';
-            AjaxComment_post(ajaxcomment_url, AjaxComment_serialize(form),
-            function(xhr) {
-                _id('AjaxComment_loading').style.display = 'none';
-                if (xhr.status == 200) {
-                    comment_append(xhr.responseText);
-                } else if (xhr.status == 405) {
-                    _id('AjaxComment_error').style.display = 'block';
-                    _id('AjaxComment_msg').innerHTML = xhr.responseText;
-                } else {
-                    alert('Ajax 未知错误');
-                }
-            });
-            return false;
+            forms[0].onsubmit = function() {
+                var form = _id(respond_id).getElementsByTagName('form')[0];
+                _id('AjaxComment_loading').style.display = 'block';
+                _id('AjaxComment_error').style.display = 'none';
+                AjaxComment_post(ajaxcomment_url, AjaxComment_serialize(form),
+                function(xhr) {
+                    _id('AjaxComment_loading').style.display = 'none';
+                    if (xhr.status == 200) {
+                        comment_append(xhr.responseText);
+                    } else if (xhr.status == 405) {
+                        _id('AjaxComment_error').style.display = 'block';
+                        _id('AjaxComment_msg').innerHTML = xhr.responseText;
+                    } else {
+                        alert('Ajax 未知错误');
+                    }
+                });
+                return false;
+            }
         }
     }
 }
+
+if (typeof(jQuery) != 'undefined' && jQuery.support.pjax) {
+    jQuery(document).on('pjax:success',
+    function(event, data, status, xhr, options) {
+        var ma = data.match(/var(\s+)(respond_id(\s+|)=(\s+|)("|'|)respond-post-(\d+)("|'|)(\s+|);)/i);
+        if (ma) {
+            eval(ma[2]);
+        } else {
+            respond_id = null
+        }
+        var ma = data.match(/var(\s+)(ajaxcomment_url(\s+|)=(\s+|)("|'|)(.*?)("|'|)(\s+|);)/i);
+        if (ma) {
+            eval(ma[2]);
+        } else {
+            ajaxcomment_url = null
+        }
+        registAjaxCommentEvent();
+    });
+}
+
+registAjaxCommentEvent();

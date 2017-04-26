@@ -5,9 +5,9 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
 
 $this_plugin_name = 'AjaxComment';
 if (basename(dirname(__FILE__)) != $this_plugin_name) {
-    $now_dir = dirname(__FILE__);
+    $now_dir  = dirname(__FILE__);
     $dir_name = basename($now_dir);
-    $tar_dir = __TYPECHO_ROOT_DIR__ . '/' . __TYPECHO_PLUGIN_DIR__ . '/' . $this_plugin_name;
+    $tar_dir  = __TYPECHO_ROOT_DIR__ . '/' . __TYPECHO_PLUGIN_DIR__ . '/' . $this_plugin_name;
     if (file_exists($tar_dir)) {
         echo '请把本插件目录名修改为：' . $this_plugin_name . '，现在的目录名为：' . $dir_name;
         exit();
@@ -26,11 +26,12 @@ if (basename(dirname(__FILE__)) != $this_plugin_name) {
  * Typecho Ajax 评论
  *
  * @package AjaxComment
- * @author 情留メ蚊子
- * @version 1.0.0.1
- * @link http://www.94qing.com/
+ * @author  情留メ蚊子
+ * @version 1.0.0.2
+ * @link    http://www.94qing.com/
  */
-class AjaxComment_Plugin implements Typecho_Plugin_Interface {
+class AjaxComment_Plugin implements Typecho_Plugin_Interface
+{
     /**
      * 激活插件方法,如果激活失败,直接抛出异常
      *
@@ -38,8 +39,12 @@ class AjaxComment_Plugin implements Typecho_Plugin_Interface {
      * @return void
      * @throws Typecho_Plugin_Exception
      */
-    public static function activate() {
-        Typecho_Plugin::factory('Widget_Archive')->afterRender = array('AjaxComment_Plugin', 'Widget_Archive_afterRender');
+    public static function activate()
+    {
+        Typecho_Plugin::factory('Widget_Archive')->afterRender = array(
+            'AjaxComment_Plugin',
+            'Widget_Archive_afterRender'
+        );
 
         Helper::addAction('ajaxcomment', 'AjaxComment_Action');
     }
@@ -52,7 +57,8 @@ class AjaxComment_Plugin implements Typecho_Plugin_Interface {
      * @return void
      * @throws Typecho_Plugin_Exception
      */
-    public static function deactivate() {
+    public static function deactivate()
+    {
         Helper::removeAction('ajaxcomment');
     }
 
@@ -63,8 +69,9 @@ class AjaxComment_Plugin implements Typecho_Plugin_Interface {
      * @param Typecho_Widget_Helper_Form $form 配置面板
      * @return void
      */
-    public static function config(Typecho_Widget_Helper_Form $form) {
-        $options = Typecho_Widget::widget('Widget_Options');
+    public static function config(Typecho_Widget_Helper_Form $form)
+    {
+        $options    = Typecho_Widget::widget('Widget_Options');
         $plugin_url = $options->pluginUrl . '/' . basename(dirname(__FILE__)) . '/';
 
         $note = '<br/><br/><br/>
@@ -107,7 +114,8 @@ class AjaxComment_Plugin implements Typecho_Plugin_Interface {
         echo '</script>';
     }
 
-    public static function configHandle($settings, $isInit) {
+    public static function configHandle($settings, $isInit)
+    {
         $db = Typecho_Db::get();
         if (!$settings['comment_list_element']) {
             $settings['comment_list_element'] = 'ol';
@@ -123,20 +131,27 @@ class AjaxComment_Plugin implements Typecho_Plugin_Interface {
         }
 
         $pluginName = 'plugin:AjaxComment';
-        $select = $db->select()->from('table.options')->where('name = ?', $pluginName);
-        $options = $db->fetchAll($select);
+        $select     = $db->select()->from('table.options')->where('name = ?', $pluginName);
+        $options    = $db->fetchAll($select);
         if (empty($settings)) {
             if (!empty($options)) {
                 $db->query($db->delete('table.options')->where('name = ?', $pluginName));
             }
         } else {
             if (empty($options)) {
-                $db->query($db->insert('table.options')->rows(array('name' => $pluginName, 'value' => serialize($settings), 'user' => 0)));
+                $db->query($db->insert('table.options')->rows(array(
+                    'name'  => $pluginName,
+                    'value' => serialize($settings),
+                    'user'  => 0
+                )));
             } else {
                 foreach ($options as $option) {
                     $value = unserialize($option['value']);
                     $value = array_merge($value, $settings);
-                    $db->query($db->update('table.options')->rows(array('value' => serialize($value)))->where('name = ?', $pluginName)->where('user = ?', $option['user']));
+                    $db->query($db->update('table.options')
+                                  ->rows(array('value' => serialize($value)))
+                                  ->where('name = ?', $pluginName)
+                                  ->where('user = ?', $option['user']));
                 }
             }
         }
@@ -149,10 +164,12 @@ class AjaxComment_Plugin implements Typecho_Plugin_Interface {
      * @param Typecho_Widget_Helper_Form $form
      * @return void
      */
-    public static function personalConfig(Typecho_Widget_Helper_Form $form) {
+    public static function personalConfig(Typecho_Widget_Helper_Form $form)
+    {
     }
 
-    public static function Widget_Archive_afterRender($archive) {
+    public static function Widget_Archive_afterRender($archive)
+    {
         if (!$archive->is('single')) {
             return;
         }
@@ -160,7 +177,7 @@ class AjaxComment_Plugin implements Typecho_Plugin_Interface {
             return;
         }
 
-        $options = Typecho_Widget::widget('Widget_Options');
+        $options  = Typecho_Widget::widget('Widget_Options');
         $settings = $options->plugin('AjaxComment');
         if (!$settings->ajaxcomment_open) {
             return;
@@ -186,7 +203,7 @@ class AjaxComment_Plugin implements Typecho_Plugin_Interface {
             var comment_children_list_class_one = comment_children_list_class.split(' ')[0];
         </script>
         <?php
-        echo '<script type="text/javascript" src="' . $plugin_url . 'js/ajaxcomment.min.js"></script>';
+        echo '<script type="text/javascript" src="' . $plugin_url . 'js/ajaxcomment.min.js?v=20170426"></script>';
     }
 
 }
